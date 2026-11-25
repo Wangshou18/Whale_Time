@@ -1,7 +1,7 @@
 {
   "name": "whale-work-assistant",
   "private": true,
-  "version": "1.2.1",
+  "version": "1.2.2",
   "type": "module",
   "description": "鲸时 · 纯本地个人工作助手",
   "engines": {
