@@ -5,6 +5,7 @@
   "type": "module",
   "description": "鲸时 · 纯本地个人工作助手",
   "scripts": {
+    "start": "vite --open",
     "dev": "vite",
     "typecheck": "tsc --noEmit",
     "build": "tsc --noEmit && vite build",
