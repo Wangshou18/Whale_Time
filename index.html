@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#f6f7fa" />
+    <meta name="description" content="鲸时 · 纯本地运行的个人工作助手，任务、日历、考勤、笔记与数据备份全部留在本机。" />
+    <link rel="icon" type="image/svg+xml" href="./icon.svg" />
+    <link rel="apple-touch-icon" href="./icon-192.png" />
+    <title>鲸时 · 个人工作助手</title>
+    <script>
+      // 单文件模式常以 file:// 打开，此时无需（也无法）加载 PWA manifest
+      ;(function () {
+        if (location.protocol !== 'file:') {
+          var manifest = document.createElement('link')
+          manifest.rel = 'manifest'
+          manifest.href = './manifest.webmanifest'
+          document.head.appendChild(manifest)
+        }
+      })()
+      ;(function () {
+        try {
+          var stored = JSON.parse(localStorage.getItem('whale-work-assistant.settings.v1') || '{}')
+          var theme = stored.theme || 'system'
+          var dark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+          document.documentElement.dataset.theme = dark ? 'dark' : 'light'
+          document.documentElement.style.colorScheme = dark ? 'dark' : 'light'
+        } catch (error) {}
+      })()
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <noscript>本应用需要启用 JavaScript 才能运行。所有数据都只保存在你的浏览器本地。</noscript>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

@@ -1,0 +1,29 @@
+{
+  "name": "whale-work-assistant",
+  "private": true,
+  "version": "1.1.0",
+  "type": "module",
+  "description": "鲸时 · 纯本地个人工作助手",
+  "scripts": {
+    "dev": "vite",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc --noEmit && vite build",
+    "build:single": "tsc --noEmit && vite build --mode single",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "dompurify": "^3.2.4",
+    "jszip": "^3.10.1",
+    "marked": "^15.0.7",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.7.3",
+    "vite": "^6.0.11",
+    "vite-plugin-singlefile": "^2.2.0"
+  }
+}
