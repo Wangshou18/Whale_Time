@@ -3,6 +3,10 @@ setlocal EnableDelayedExpansion
 cd /d "%~dp0"
 title Whale Time - Local
 
+rem 系统命令一律用绝对路径，避免 PATH 被改坏时连带失败
+set "SYS32=%SystemRoot%\System32"
+if not exist "%SYS32%\netstat.exe" set "SYS32=C:\Windows\System32"
+
 echo ============================================================
 echo   Whale Time  .  personal work assistant
 echo.
@@ -13,21 +17,55 @@ echo ============================================================
 echo.
 
 rem ------------------------------------------------------------
-rem  1. Pick a Node.js >= 18 (Vite 6 refuses older runtimes)
+rem  1. Pick Node for THIS project only
+rem     The system default stays on whatever nvm has active;
+rem     this script never relies on it. Version comes from .nvmrc.
 rem ------------------------------------------------------------
 set "NODE_EXE="
 set "NODE_VER="
+set "NVMBASE="
+set "PIN_VER="
+set "PIN_MAJOR="
 
-call :probe_from_path
-if not defined NODE_EXE call :probe_known_locations
+if exist "%LOCALAPPDATA%\nvm" set "NVMBASE=%LOCALAPPDATA%\nvm"
+if not defined NVMBASE if exist "%APPDATA%\nvm" set "NVMBASE=%APPDATA%\nvm"
+if not defined NVMBASE if exist "%ProgramFiles%\nvm" set "NVMBASE=%ProgramFiles%\nvm"
+
+rem read the pinned version, e.g. 22.20.0 in .nvmrc
+if exist ".nvmrc" for /f "delims=" %%L in (.nvmrc) do (
+  if not defined PIN_VER set "PIN_VER=%%L"
+)
+set "PIN_VER=!PIN_VER: =!"
+if defined PIN_VER for /f "tokens=1 delims=." %%m in ("!PIN_VER!") do set "PIN_MAJOR=%%m"
+if not defined PIN_MAJOR (
+  set "PIN_MAJOR=22"
+  set "PIN_VER=22"
+)
+
+rem 1a. exactly the pinned version inside nvm-windows
+if defined NVMBASE if exist "!NVMBASE!\v!PIN_VER!\node.exe" set "NODE_EXE=!NVMBASE!\v!PIN_VER!\node.exe"
+
+rem 1b. any other build of the same major version (newest first)
+if not defined NODE_EXE call :probe_nvm_major
+
+rem 1c. whatever "node" resolves to, if it is >= 18
+if not defined NODE_EXE call :probe_from_path
+
+rem 1d. any other nvm build >= 18
+if not defined NODE_EXE call :probe_nvm_any
+
+rem 1e. standard installers / bundled runtime
+if not defined NODE_EXE call :probe_standard
+
 if not defined NODE_EXE goto :no_node
 
-echo [INFO] Node : !NODE_VER!  (!NODE_EXE!)
-echo.
+rem re-read the version of the chosen binary
+for /f "delims=" %%v in ('"!NODE_EXE!" -v 2^>nul') do set "NODE_VER=%%v"
 
-rem 系统命令一律用绝对路径，避免 PATH 被改坏时连带失败
-set "SYS32=%SystemRoot%\System32"
-if not exist "%SYS32%\netstat.exe" set "SYS32=C:\Windows\System32"
+echo [INFO] Pin  : v!PIN_VER!  (from .nvmrc, major !PIN_MAJOR!^)
+echo [INFO] Node : !NODE_VER!  (!NODE_EXE!)
+echo [INFO] Mode : project only (system default untouched)
+echo.
 
 rem ------------------------------------------------------------
 rem  2. Server already running? Only open the browser.
@@ -69,23 +107,29 @@ rem ============================================================
 rem  Subroutines
 rem ============================================================
 
+:probe_nvm_major
+if not defined NVMBASE exit /b 0
+for /f "delims=" %%V in ('dir /b /ad /o-n "!NVMBASE!\v!PIN_MAJOR!.*" 2^>nul') do (
+  if not defined NODE_EXE call :probe "!NVMBASE!\%%V\node.exe"
+)
+exit /b 0
+
+:probe_nvm_any
+if not defined NVMBASE exit /b 0
+for /f "delims=" %%V in ('dir /b /ad /o-n "!NVMBASE!\v*" 2^>nul') do (
+  if not defined NODE_EXE call :probe "!NVMBASE!\%%V\node.exe"
+)
+exit /b 0
+
 :probe_from_path
 for /f "delims=" %%P in ('"%SYS32%\where.exe" node 2^>nul') do (
   if not defined NODE_EXE call :probe "%%P"
 )
 exit /b 0
 
-:probe_known_locations
-rem nvm for Windows versions
-for %%R in ("%APPDATA%\nvm" "%LOCALAPPDATA%\nvm" "%ProgramFiles%\nvm") do (
-  for /d %%V in ("%%~R\v*") do (
-    if not defined NODE_EXE call :probe "%%~V\node.exe"
-  )
-)
-rem standard installers
+:probe_standard
 if not defined NODE_EXE call :probe "%ProgramFiles%\nodejs\node.exe"
 if not defined NODE_EXE call :probe "%LOCALAPPDATA%\Programs\nodejs\node.exe"
-rem fallback: the runtime bundled with this workspace
 for /d %%V in ("%USERPROFILE%\.workbuddy\binaries\node\versions\*") do (
   if not defined NODE_EXE call :probe "%%~V\node.exe"
 )
@@ -104,7 +148,6 @@ for /f "tokens=1 delims=." %%m in ("!V!") do set "MAJOR=%%m"
 if not defined MAJOR exit /b 0
 if !MAJOR! LSS 18 exit /b 0
 set "NODE_EXE=!CAND!"
-set "NODE_VER=v!V!"
 exit /b 0
 
 :install_deps
@@ -118,18 +161,17 @@ call npm install
 exit /b !errorlevel!
 
 :no_node
-echo [ERROR] No Node.js 18 or newer found.
+echo [ERROR] No Node.js 18 or newer found, this project cannot start.
 echo.
-echo   This machine resolves "node" to a version older than 18,
-echo   and Vite 6 cannot run on it.
+echo   The version pinned in .nvmrc is !PIN_VER! and it was not found.
+echo   Your system default Node is free to stay on 16, but this project
+echo   needs 18+ (Vite 6). Install the pinned one:
+echo.
+echo       nvm install !PIN_VER!
+echo.
+echo   Then double-click this file again. Do not run "nvm use" globally.
 echo.
 "%SYS32%\where.exe" node 2>nul
-echo.
-echo   Fix it in either way:
-echo     1) Install LTS from https://nodejs.org  (recommended)
-echo     2) If you use nvm-windows:
-echo          nvm install 22
-echo          nvm use 22
 echo.
 pause
 exit /b 1
