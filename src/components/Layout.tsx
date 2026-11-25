@@ -19,6 +19,7 @@ const NAV: NavItem[] = [
   { key: 'attendance', label: '考勤', icon: 'attendance', path: '/attendance' },
   { key: 'notes', label: '笔记', icon: 'notes', path: '/notes' },
   { key: 'review', label: '总结', icon: 'review', path: '/review' },
+  { key: 'transfer', label: '打包', icon: 'package', path: '/transfer' },
   { key: 'settings', label: '设置', icon: 'settings', path: '/settings' },
 ]
 
@@ -29,7 +30,8 @@ const PAGE_META: Record<string, { title: string; subtitle: string }> = {
   attendance: { title: '考勤', subtitle: '记录出勤与休息，给努力留下痕迹。' },
   notes: { title: '笔记', subtitle: '把灵感和信息留在本地，随时翻回来。' },
   review: { title: '工作总结', subtitle: '每天几行字，按月按年攒成自己的成绩单。' },
-  settings: { title: '设置', subtitle: '主题、提醒与数据备份，都在这里。' },
+  transfer: { title: '数据打包', subtitle: '导出、备份与恢复，文件只在本机生成。' },
+  settings: { title: '设置', subtitle: '主题、提醒与本地存储，都在这里。' },
 }
 
 const THEME_ICON: Record<ThemeMode, IconName> = { light: 'sun', dark: 'moon', system: 'monitor' }

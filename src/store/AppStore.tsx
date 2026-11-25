@@ -34,7 +34,7 @@ import {
   saveTaskRecord,
   wipeAll,
 } from '../db/repository'
-import { importBackupFile, type ImportStrategy } from '../utils/backup'
+import { importBackupFile, type ImportStrategy } from '../features/transfer'
 import { loadSettings, persistSettings } from '../utils/settings'
 import { nowISO, uid } from '../utils/id'
 

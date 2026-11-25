@@ -1,11 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { AttachmentRecord, ThemeMode } from '../types'
 import { useApp } from '../store/AppStore'
 import { useUI } from '../context/uiContext'
 import { Icon } from '../components/Icons'
 import { getAllAttachments } from '../db/repository'
-import { exportBackup, exportCsvBundle, type ImportStrategy } from '../utils/backup'
-import { downloadBlob, formatBytes } from '../utils/format'
+import { formatBytes } from '../utils/format'
 
 const THEME_OPTIONS: { value: ThemeMode; label: string; desc: string; icon: 'sun' | 'moon' | 'monitor' }[] = [
   { value: 'light', label: '浅色', desc: '清爽明亮', icon: 'sun' },
@@ -14,14 +13,11 @@ const THEME_OPTIONS: { value: ThemeMode; label: string; desc: string; icon: 'sun
 ]
 
 export function SettingsPage() {
-  const { tasks, notes, attendance, summaries, settings, updateSettings, importData, clearAllData, notify } = useApp()
-  const { confirm, openShortcuts } = useUI()
+  const { tasks, notes, attendance, summaries, settings, updateSettings, clearAllData, notify } = useApp()
+  const { confirm, openShortcuts, navigate } = useUI()
   const [attachments, setAttachments] = useState<AttachmentRecord[]>([])
   const [usage, setUsage] = useState<{ usage: number; quota: number } | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
-  const [importFile, setImportFile] = useState<File | null>(null)
-  const [strategy, setStrategy] = useState<ImportStrategy>('merge')
-  const fileRef = useRef<HTMLInputElement>(null)
 
   const loadStorage = useCallback(async () => {
     try {
@@ -47,51 +43,6 @@ export function SettingsPage() {
   const usagePercent = usage && usage.quota ? Math.min(100, (usage.usage / usage.quota) * 100) : 0
   const currentOrigin =
     typeof window !== 'undefined' && window.location.origin !== 'null' ? window.location.origin : 'file://'
-
-  const runExport = async (kind: 'json' | 'zip' | 'csv') => {
-    setBusy(kind)
-    try {
-      const result = kind === 'csv' ? await exportCsvBundle() : await exportBackup(kind === 'zip')
-      downloadBlob(result.blob, result.filename)
-      notify(
-        kind === 'zip' ? '完整备份已导出（含附件）' : kind === 'csv' ? 'CSV 表格包已导出' : '备份 JSON 已导出',
-      )
-    } catch (error) {
-      notify(error instanceof Error ? error.message : '导出失败，请重试', 'error')
-    } finally {
-      setBusy(null)
-    }
-  }
-
-  const handleImport = async () => {
-    if (!importFile) {
-      notify('请先选择备份文件', 'error')
-      return
-    }
-    if (strategy === 'overwrite') {
-      const ok = await confirm({
-        title: '覆盖现有数据？',
-        message: '导入前会清空当前全部任务、笔记、考勤、总结和附件。此操作不可撤销，建议先导出一份备份。',
-        confirmText: '继续覆盖',
-        danger: true,
-      })
-      if (!ok) return
-    }
-    setBusy('import')
-    try {
-      const result = await importData(importFile, strategy)
-      notify(
-        `导入完成：${result.tasks} 个任务、${result.notes} 篇笔记、${result.attendance} 条考勤、${result.summaries} 天总结、${result.attachments} 个附件`,
-      )
-      setImportFile(null)
-      if (fileRef.current) fileRef.current.value = ''
-      await loadStorage()
-    } catch (error) {
-      notify(error instanceof Error ? error.message : '导入失败，请检查文件格式', 'error')
-    } finally {
-      setBusy(null)
-    }
-  }
 
   const handleClear = async () => {
     const ok = await confirm({
@@ -224,104 +175,21 @@ export function SettingsPage() {
         </section>
       </div>
 
-      <section className="card settings-card">
+      <section className="card settings-card transfer-entry">
         <header className="section-head">
           <div>
-            <h3>导出数据</h3>
-            <p>在前端本地生成文件，不经过任何网络请求。</p>
+            <h3>数据打包</h3>
+            <p>导入、导出、整体备份与工作总结归档，已独立成一个页面。</p>
           </div>
-        </header>
-        <div className="export-grid">
-          <div className="export-item">
-            <span className="export-icon blue"><Icon name="database" size={19} /></span>
-            <div>
-              <strong>备份 JSON</strong>
-              <p>任务、笔记、考勤、每日总结与设置，轻量快捷。不含附件文件。</p>
-            </div>
-            <button type="button" className="btn btn-soft btn-sm" onClick={() => void runExport('json')} disabled={!!busy}>
-              {busy === 'json' ? <span className="spinner small" /> : <Icon name="download" size={15} />} 导出
-            </button>
-          </div>
-          <div className="export-item">
-            <span className="export-icon green"><Icon name="hardDrive" size={19} /></span>
-            <div>
-              <strong>完整备份 ZIP</strong>
-              <p>包含 JSON 与全部附件原始文件，可用于完整恢复。</p>
-            </div>
-            <button type="button" className="btn btn-soft btn-sm" onClick={() => void runExport('zip')} disabled={!!busy}>
-              {busy === 'zip' ? <span className="spinner small" /> : <Icon name="download" size={15} />} 导出
-            </button>
-          </div>
-          <div className="export-item">
-            <span className="export-icon amber"><Icon name="text" size={19} /></span>
-            <div>
-              <strong>CSV 表格包</strong>
-              <p>任务、笔记、考勤、总结四个 CSV，方便在表格软件中查看。</p>
-            </div>
-            <button type="button" className="btn btn-soft btn-sm" onClick={() => void runExport('csv')} disabled={!!busy}>
-              {busy === 'csv' ? <span className="spinner small" /> : <Icon name="download" size={15} />} 导出
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <section className="card settings-card">
-        <header className="section-head">
-          <div>
-            <h3>导入数据</h3>
-            <p>支持本应用导出的 JSON 或 ZIP，ZIP 可以恢复附件。</p>
-          </div>
-        </header>
-
-        <button type="button" className="drop-zone" onClick={() => fileRef.current?.click()}>
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".json,.zip,application/json,application/zip"
-            hidden
-            onChange={(event) => setImportFile(event.target.files?.[0] ?? null)}
-          />
-          <span className="drop-icon"><Icon name="upload" size={22} /></span>
-          {importFile ? (
-            <span className="drop-text">
-              <strong>{importFile.name}</strong>
-              <em>{formatBytes(importFile.size)} · 点击可重新选择</em>
-            </span>
-          ) : (
-            <span className="drop-text">
-              <strong>选择备份文件</strong>
-              <em>支持 .json 与 .zip，文件只在本地读取</em>
-            </span>
-          )}
-        </button>
-
-        <div className="strategy-row">
-          <span className="field-label">导入策略</span>
-          <div className="strategy-options">
-            <label className={`strategy ${strategy === 'merge' ? 'active' : ''}`}>
-              <input type="radio" name="strategy" checked={strategy === 'merge'} onChange={() => setStrategy('merge')} />
-              <span>
-                <strong>合并</strong>
-                <em>保留现有数据，同 ID 以更新时间较新的版本为准。</em>
-              </span>
-            </label>
-            <label className={`strategy ${strategy === 'overwrite' ? 'active' : ''}`}>
-              <input type="radio" name="strategy" checked={strategy === 'overwrite'} onChange={() => setStrategy('overwrite')} />
-              <span>
-                <strong>覆盖</strong>
-                <em>先清空现有数据，再完整导入备份内容。</em>
-              </span>
-            </label>
-          </div>
-        </div>
-
-        <div className="settings-actions">
-          <button type="button" className="btn btn-primary" onClick={handleImport} disabled={busy === 'import' || !importFile}>
-            {busy === 'import' ? <span className="spinner small" /> : <Icon name="upload" size={16} />}
-            {busy === 'import' ? '导入中…' : '开始导入'}
+          <button type="button" className="btn btn-primary btn-sm" onClick={() => navigate('/transfer')}>
+            <Icon name="package" size={15} /> 打开打包中心
           </button>
-          <span className="muted small">导入不会修改或上传原始文件。</span>
-        </div>
+        </header>
+        <ul className="transfer-entry-list">
+          <li><Icon name="hardDrive" size={15} /> 完整 ZIP 备份（含附件）与轻量 JSON 备份</li>
+          <li><Icon name="review" size={15} /> 工作总结按月 / 按年导出 Markdown、纯文本、CSV</li>
+          <li><Icon name="exchange" size={15} /> 单项导入与合并 / 覆盖策略</li>
+        </ul>
       </section>
 
       <div className="settings-grid">
@@ -331,7 +199,7 @@ export function SettingsPage() {
               <h3>关于鲸时</h3>
               <p>一个不联网也能好好工作的个人助手。</p>
             </div>
-            <span className="version-chip">v1.1.0</span>
+            <span className="version-chip">v1.2.0</span>
           </header>
           <ul className="about-list">
             <li><Icon name="shield" size={15} /> 无账户、无登录、无云同步</li>

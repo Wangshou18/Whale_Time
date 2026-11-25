@@ -11,9 +11,10 @@ import { CalendarPage } from './pages/Calendar'
 import { AttendancePage } from './pages/Attendance'
 import { NotesPage } from './pages/Notes'
 import { SummaryPage } from './pages/Summary'
+import { DataTransferPage } from './pages/DataTransfer'
 import { SettingsPage } from './pages/Settings'
 
-const PAGES = ['dashboard', 'tasks', 'calendar', 'attendance', 'notes', 'review', 'settings']
+const PAGES = ['dashboard', 'tasks', 'calendar', 'attendance', 'notes', 'review', 'transfer', 'settings']
 
 function Shell() {
   const { route } = useUI()
@@ -28,6 +29,7 @@ function Shell() {
       {safePage === 'attendance' ? <AttendancePage /> : null}
       {safePage === 'notes' ? <NotesPage /> : null}
       {safePage === 'review' ? <SummaryPage /> : null}
+      {safePage === 'transfer' ? <DataTransferPage /> : null}
       {safePage === 'settings' ? <SettingsPage /> : null}
     </Layout>
   )

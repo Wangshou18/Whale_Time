@@ -220,6 +220,18 @@ const ICONS = {
       <path d="M8 3v4M16 3v4M3 10h18M12 13v5M9.5 15.5h5" />
     </>
   ),
+  package: (
+    <>
+      <path d="M12 3 21 7.5v9L12 21 3 16.5v-9L12 3z" />
+      <path d="m3 7.5 9 4.5 9-4.5M12 12v9M7.5 5.2l9 4.5" />
+    </>
+  ),
+  exchange: (
+    <>
+      <path d="M4 8h13M13.5 4.5 17 8l-3.5 3.5" />
+      <path d="M20 16H7M10.5 12.5 7 16l3.5 3.5" />
+    </>
+  ),
 } satisfies Record<string, ReactNode>
 
 export type IconName = keyof typeof ICONS
