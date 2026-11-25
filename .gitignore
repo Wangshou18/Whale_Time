@@ -22,3 +22,7 @@ desktop.ini
 
 # 工具本地数据（非项目源码）
 .workbuddy/
+
+# 临时脚本与临时浏览器配置
+.tmp-*
+.tmp*/
