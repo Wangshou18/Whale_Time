@@ -3099,6 +3099,38 @@ select.input {
   font-variant-numeric: tabular-nums;
 }
 
+.storage-origin {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  padding: 8px 10px;
+  border-radius: 9px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.storage-origin code {
+  font-family: var(--font-mono, ui-monospace, Consolas, monospace);
+  font-size: 10.5px;
+  color: var(--text);
+  word-break: break-all;
+}
+
+.inline-link {
+  color: var(--accent);
+  text-decoration: none;
+  border-bottom: 1px dashed currentColor;
+  margin: 0 2px;
+}
+
+.inline-link:hover {
+  color: var(--accent-2);
+}
+
 .export-grid {
   display: flex;
   flex-direction: column;

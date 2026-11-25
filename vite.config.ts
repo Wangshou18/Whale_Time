@@ -14,6 +14,14 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       port: 5173,
+      // 端口固定：IndexedDB 按「协议 + 域名 + 端口」隔离，
+      // 端口一旦漂移（5173 → 5174）就会看到一份空数据，因此禁止自动换端口。
+      strictPort: true,
+      host: '127.0.0.1',
+    },
+    preview: {
+      port: 4173,
+      strictPort: true,
       host: '127.0.0.1',
     },
   }

@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>数据体检 · 鲸时</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f6f7f9;
+    --card: #ffffff;
+    --text: #171a1f;
+    --muted: #636b78;
+    --line: #e4e7ec;
+    --accent: #2563eb;
+    --ok-bg: #e9f7ef;
+    --ok-text: #10693f;
+    --warn-bg: #fdf3e3;
+    --warn-text: #8a5300;
+    --danger: #b42318;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14161a;
+      --card: #1c1f25;
+      --text: #e9ecf1;
+      --muted: #9aa3b2;
+      --line: #2b3038;
+      --accent: #6b9bff;
+      --ok-bg: #12301f;
+      --ok-text: #7ee2a8;
+      --warn-bg: #33260f;
+      --warn-text: #f4c473;
+      --danger: #ff8b7e;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 32px 20px 56px;
+    background: var(--bg);
+    color: var(--text);
+    font: 15px/1.65 -apple-system, "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; }
+  h1 { margin: 0 0 6px; font-size: 22px; letter-spacing: -0.01em; }
+  .sub { margin: 0 0 22px; color: var(--muted); font-size: 14px; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 18px 20px;
+    margin-bottom: 16px;
+  }
+  .card h2 {
+    margin: 0 0 12px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .banner {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    font-weight: 600;
+    margin-bottom: 16px;
+  }
+  .banner.ok { background: var(--ok-bg); color: var(--ok-text); }
+  .banner.warn { background: var(--warn-bg); color: var(--warn-text); }
+  .banner small { display: block; font-weight: 400; margin-top: 3px; opacity: 0.9; }
+  code, .mono {
+    font-family: ui-monospace, Consolas, "SFMono-Regular", monospace;
+    font-size: 13px;
+    background: rgba(125, 135, 150, 0.14);
+    padding: 2px 6px;
+    border-radius: 5px;
+    word-break: break-all;
+  }
+  .row { display: flex; gap: 10px; padding: 7px 0; border-bottom: 1px dashed var(--line); }
+  .row:last-child { border-bottom: 0; }
+  .row .k { color: var(--muted); min-width: 128px; flex: 0 0 auto; font-size: 14px; }
+  .row .v { flex: 1; min-width: 0; }
+  .counts { display: grid; grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)); gap: 10px; }
+  .count {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 12px 14px;
+  }
+  .count b { display: block; font-size: 22px; font-weight: 650; line-height: 1.2; }
+  .count span { font-size: 12.5px; color: var(--muted); }
+  .count.zero b { color: var(--muted); opacity: 0.5; }
+  ul.samples { margin: 8px 0 0; padding-left: 20px; color: var(--muted); font-size: 13.5px; }
+  ul.samples li { margin: 3px 0; }
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+  button {
+    font: inherit;
+    font-size: 14px;
+    padding: 9px 16px;
+    border-radius: 9px;
+    border: 1px solid var(--line);
+    background: var(--card);
+    color: var(--text);
+    cursor: pointer;
+  }
+  button:hover { border-color: var(--accent); color: var(--accent); }
+  button.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+    font-weight: 600;
+  }
+  button.primary:hover { filter: brightness(1.06); color: #fff; }
+  button:disabled { opacity: 0.45; cursor: not-allowed; border-color: var(--line); color: var(--muted); }
+  .hint { font-size: 13px; color: var(--muted); margin: 12px 0 0; }
+  .hint strong { color: var(--text); font-weight: 600; }
+  .err { color: var(--danger); font-size: 13.5px; }
+  .steps { margin: 0; padding-left: 20px; font-size: 14px; }
+  .steps li { margin: 6px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>数据体检</h1>
+  <p class="sub">检查当前访问地址下的本地数据。数据按地址隔离，换地址就会看到另一份。</p>
+
+  <div id="banner" class="banner warn">正在检测…</div>
+
+  <section class="card">
+    <h2>当前地址</h2>
+    <div class="row"><span class="k">完整地址</span><span class="v mono" id="origin">—</span></div>
+    <div class="row"><span class="k">协议</span><span class="v" id="protocol">—</span></div>
+    <div class="row"><span class="k">浏览器</span><span class="v" id="ua" style="font-size:13px;color:var(--muted)"></span></div>
+  </section>
+
+  <section class="card">
+    <h2>本地数据</h2>
+    <div class="counts" id="counts"></div>
+    <div id="samples"></div>
+    <p class="err" id="error" hidden></p>
+  </section>
+
+  <section class="card">
+    <h2>搬运数据</h2>
+    <div class="actions">
+      <button class="primary" id="export" disabled>导出为备份 JSON</button>
+      <button id="recheck">重新检测</button>
+    </div>
+    <p class="hint">
+      如果这里能看到数据，点「导出为备份 JSON」，然后在你要长期使用的那个地址打开应用，
+      进入<strong>设置 → 导入数据</strong>选择该文件（合并或覆盖）即可搬过去。
+      附件为二进制文件，不含在此 JSON 中，需要重新上传。
+    </p>
+  </section>
+
+  <section class="card">
+    <h2>找不到数据时</h2>
+    <ol class="steps">
+      <li>回想之前是从哪个地址打开的：开发服务器通常是 <code>http://127.0.0.1:5173</code>，预览构建产物是 <code>http://127.0.0.1:4173</code>，双击单文件则是 <code>file://</code>。</li>
+      <li>把本页面地址里的域名和端口逐个换成上面这些，依次打开看「本地数据」是否非空。</li>
+      <li>注意 <code>localhost</code> 与 <code>127.0.0.1</code> 在浏览器里是<strong>两个不同的源</strong>，数据不互通。</li>
+      <li>找到有数据的地址后，导出 JSON，再到固定地址导入。</li>
+      <li>若所有地址都是空的，说明浏览器站点数据已被清除（清理软件、隐私模式、手动清理过），只能从备份文件恢复。</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+(function () {
+  var DB_NAME = 'whale-work-assistant'
+  var STORES = ['tasks', 'notes', 'attendance', 'attachments', 'summaries']
+  var LABELS = { tasks: '任务', notes: '笔记', attendance: '考勤', attachments: '附件', summaries: '总结' }
+  var SETTINGS_KEY = 'whale-work-assistant.settings.v1'
+
+  var state = { tasks: [], notes: [], attendance: [], summaries: [], counts: {} }
+
+  function el(id) { return document.getElementById(id) }
+
+  function openDB() {
+    return new Promise(function (resolve, reject) {
+      var req = indexedDB.open(DB_NAME)
+      req.onsuccess = function () { resolve(req.result) }
+      req.onerror = function () { reject(req.error || new Error('无法打开数据库')) }
+      req.onblocked = function () { reject(new Error('数据库被其他标签页占用，请关闭其他页面后重试')) }
+    })
+  }
+
+  function listDatabases() {
+    try {
+      if (indexedDB.databases) return indexedDB.databases()
+    } catch (e) { /* 忽略 */ }
+    return Promise.resolve(null)
+  }
+
+  function readStore(db, name) {
+    return new Promise(function (resolve) {
+      var tx = db.transaction(name, 'readonly')
+      var req = tx.objectStore(name).getAll()
+      req.onsuccess = function () { resolve(req.result || []) }
+      req.onerror = function () { resolve([]) }
+    })
+  }
+
+  function countStore(db, name) {
+    return new Promise(function (resolve) {
+      try {
+        var tx = db.transaction(name, 'readonly')
+        var req = tx.objectStore(name).count()
+        req.onsuccess = function () { resolve(req.result || 0) }
+        req.onerror = function () { resolve(0) }
+      } catch (e) { resolve(0) }
+    })
+  }
+
+  function fmtTime(value) {
+    if (!value) return ''
+    var d = new Date(value)
+    if (isNaN(d.getTime())) return ''
+    return d.toLocaleDateString('zh-CN')
+  }
+
+  function renderCounts() {
+    var box = el('counts')
+    box.innerHTML = ''
+    STORES.forEach(function (name) {
+      var n = state.counts[name] || 0
+      var div = document.createElement('div')
+      div.className = 'count' + (n ? '' : ' zero')
+      var b = document.createElement('b')
+      b.textContent = n
+      var s = document.createElement('span')
+      s.textContent = LABELS[name]
+      div.appendChild(b)
+      div.appendChild(s)
+      box.appendChild(div)
+    })
+  }
+
+  function renderSamples() {
+    var box = el('samples')
+    box.innerHTML = ''
+    var lines = []
+    state.tasks.slice(0, 3).forEach(function (t) {
+      lines.push('任务：' + (t.title || '未命名') + (t.startDate ? '（' + t.startDate + '）' : ''))
+    })
+    state.notes.slice(0, 2).forEach(function (n) {
+      lines.push('笔记：' + (n.title || '未命名') + (n.updatedAt ? '（' + fmtTime(n.updatedAt) + '）' : ''))
+    })
+    if (state.summaries.length) {
+      var latest = state.summaries
+        .slice()
+        .sort(function (a, b) { return String(b.date).localeCompare(String(a.date)) })[0]
+      lines.push('总结：最近一篇 ' + latest.date)
+    }
+    if (!lines.length) return
+    var ul = document.createElement('ul')
+    ul.className = 'samples'
+    lines.forEach(function (text) {
+      var li = document.createElement('li')
+      li.textContent = text
+      ul.appendChild(li)
+    })
+    box.appendChild(ul)
+  }
+
+  function setBanner(kind, title, detail) {
+    var banner = el('banner')
+    banner.className = 'banner ' + kind
+    banner.innerHTML = ''
+    banner.appendChild(document.createTextNode(title))
+    if (detail) {
+      var small = document.createElement('small')
+      small.textContent = detail
+      banner.appendChild(small)
+    }
+  }
+
+  function totalRecords() {
+    return STORES.reduce(function (sum, name) { return sum + (state.counts[name] || 0) }, 0)
+  }
+
+  function buildPayload() {
+    var settings = null
+    try {
+      var raw = localStorage.getItem(SETTINGS_KEY)
+      settings = raw ? JSON.parse(raw) : null
+    } catch (e) { settings = null }
+
+    return {
+      app: DB_NAME,
+      version: 2,
+      exportedAt: new Date().toISOString(),
+      attachmentsIncluded: false,
+      settings: settings,
+      tasks: state.tasks.map(function (task) {
+        var copy = Object.assign({}, task)
+        copy.attachments = []
+        return copy
+      }),
+      notes: state.notes,
+      attendance: state.attendance,
+      summaries: state.summaries
+    }
+  }
+
+  function exportJson() {
+    var payload = buildPayload()
+    var stamp = new Date().toISOString().slice(0, 10)
+    var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' })
+    var url = URL.createObjectURL(blob)
+    var a = document.createElement('a')
+    a.href = url
+    a.download = 'jing-shi-rescue-' + stamp + '.json'
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    setTimeout(function () { URL.revokeObjectURL(url) }, 2000)
+  }
+
+  function setError(message) {
+    var box = el('error')
+    if (!message) {
+      box.hidden = true
+      box.textContent = ''
+      return
+    }
+    box.hidden = false
+    box.textContent = message
+  }
+
+  async function scan() {
+    el('origin').textContent = location.origin === 'null' ? location.href : location.origin
+    el('protocol').textContent = location.protocol.replace(':', '') +
+      (location.protocol === 'file:' ? '（本地文件，存储与其他地址完全隔离）' : '')
+    el('ua').textContent = navigator.userAgent
+
+    el('export').disabled = true
+    setError('')
+    state = { tasks: [], notes: [], attendance: [], summaries: [], counts: {} }
+    setBanner('warn', '正在检测…', '')
+
+    try {
+      if (!window.indexedDB) {
+        throw new Error('当前浏览器不支持 IndexedDB，或处于不支持本地存储的隐私模式。')
+      }
+
+      var dbs = await listDatabases()
+      if (dbs && !dbs.some(function (item) { return item.name === DB_NAME })) {
+        state.counts = {}
+        renderCounts()
+        renderSamples()
+        setBanner('warn', '这个地址下没有数据', '数据库 ' + DB_NAME + ' 尚未创建，说明你从未在此地址写入过内容。')
+        return
+      }
+
+      var db = await openDB()
+      var names = Array.prototype.slice.call(db.objectStoreNames)
+      for (var i = 0; i < STORES.length; i++) {
+        var name = STORES[i]
+        state.counts[name] = names.indexOf(name) === -1 ? 0 : await countStore(db, name)
+      }
+
+      if (names.indexOf('tasks') !== -1) state.tasks = await readStore(db, 'tasks')
+      if (names.indexOf('notes') !== -1) state.notes = await readStore(db, 'notes')
+      if (names.indexOf('attendance') !== -1) state.attendance = await readStore(db, 'attendance')
+      if (names.indexOf('summaries') !== -1) state.summaries = await readStore(db, 'summaries')
+
+      state.tasks.sort(function (a, b) {
+        return String(b.createdAt || '').localeCompare(String(a.createdAt || ''))
+      })
+      state.notes.sort(function (a, b) {
+        return String(b.updatedAt || '').localeCompare(String(a.updatedAt || ''))
+      })
+
+      renderCounts()
+      renderSamples()
+
+      var total = totalRecords()
+      if (total > 0) {
+        el('export').disabled = false
+        setBanner('ok', '这个地址下有数据：共 ' + total + ' 条记录',
+          '点下方「导出为备份 JSON」，再到固定地址打开应用导入即可搬过去。')
+      } else {
+        setBanner('warn', '数据库存在，但里面没有内容', '在此地址写入过数据后会有记录出现。')
+      }
+    } catch (err) {
+      renderCounts()
+      setBanner('warn', '检测失败', '')
+      setError(err && err.message ? err.message : String(err))
+    }
+  }
+
+  el('recheck').addEventListener('click', function () { void scan() })
+  el('export').addEventListener('click', exportJson)
+
+  void scan()
+})()
+</script>
+</body>
+</html>

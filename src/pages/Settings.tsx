@@ -45,6 +45,8 @@ export function SettingsPage() {
 
   const attachmentBytes = attachments.reduce((sum, record) => sum + (record.size || 0), 0)
   const usagePercent = usage && usage.quota ? Math.min(100, (usage.usage / usage.quota) * 100) : 0
+  const currentOrigin =
+    typeof window !== 'undefined' && window.location.origin !== 'null' ? window.location.origin : 'file://'
 
   const runExport = async (kind: 'json' | 'zip' | 'csv') => {
     setBusy(kind)
@@ -208,6 +210,16 @@ export function SettingsPage() {
             <span><strong>{summaries.length}</strong> 总结</span>
             <span><strong>{attachments.length}</strong> 附件</span>
           </div>
+          <div className="storage-origin">
+            <span>当前访问地址</span>
+            <code>{currentOrigin}</code>
+          </div>
+          <p className="muted small">
+            数据与这个地址绑定：换端口、<code>localhost</code> 与 <code>127.0.0.1</code> 互换、或改用 <code>file://</code> 打开，都会看到另一份空数据。
+            若在别的地址存过内容，可先打开
+            <a className="inline-link" href="./data-check.html" target="_blank" rel="noreferrer">数据体检</a>
+            导出备份，再回到固定地址导入。
+          </p>
           <p className="muted small">附件合计 {formatBytes(attachmentBytes)}。浏览器清除站点数据会同时删除本应用的全部内容，请定期导出备份。</p>
         </section>
       </div>
