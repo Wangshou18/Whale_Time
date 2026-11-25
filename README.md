@@ -127,6 +127,59 @@ npm run build:single
 
 ---
 
+## 版本管理
+
+仓库地址：<https://github.com/Wangshou18/Whale_Time>
+
+项目使用 Git 维护版本，`main` 为稳定分支，`package.json` 的 `version` 与 Git tag 保持一致。
+
+```bash
+git clone git@github.com:Wangshou18/Whale_Time.git
+cd Whale_Time
+npm install
+npm run dev
+```
+
+日常提交流程：
+
+```bash
+git pull                      # 先同步远程
+git checkout -b feat/xxx      # 功能分支（简单改动可直接在 main 上）
+# ... 修改代码 ...
+npm run typecheck             # 提交前类型检查
+npm run build                 # 确认可构建
+git add -A
+git commit -m "feat: 说明本次改动"
+git push -u origin feat/xxx
+```
+
+提交信息约定（参考 Conventional Commits）：
+
+| 前缀 | 含义 |
+| --- | --- |
+| `feat` | 新增功能 |
+| `fix` | 修复缺陷 |
+| `style` | 样式或格式调整（不影响逻辑） |
+| `refactor` | 重构（不新增功能、不修缺陷） |
+| `docs` | 文档变更 |
+| `chore` | 依赖、构建配置、杂项 |
+| `perf` | 性能优化 |
+
+发版时同步三处版本号，并打 tag：
+
+```bash
+# 1. 修改 package.json 的 version
+# 2. 更新 README 的版本说明
+npm run build && npm run build:single
+git add -A && git commit -m "chore: release v1.1.0"
+git tag -a v1.1.0 -m "v1.1.0 新增工作总结页面"
+git push && git push --tags
+```
+
+`node_modules/`、`dist/`、`dist-single/` 已在 `.gitignore` 中忽略，构建产物不进仓库；换行符由 `.gitattributes` 统一为 LF。
+
+---
+
 ## 数据存储说明
 
 | 数据 | 位置 | 说明 |
