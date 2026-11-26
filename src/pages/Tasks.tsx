@@ -6,6 +6,7 @@ import { useUI } from '../context/uiContext'
 import { TaskItem } from '../components/TaskItem'
 import { Icon } from '../components/Icons'
 import { dueInfo, formatShort, todayISO } from '../utils/date'
+import { compareOpenTasks } from '../utils/taskOrder'
 
 type Tab = 'todo' | 'done' | 'all'
 type SortKey = 'due' | 'priority' | 'created' | 'title'
@@ -71,7 +72,7 @@ export function Tasks() {
       }
       if (sort === 'created') return b.createdAt.localeCompare(a.createdAt)
       if (sort === 'title') return a.title.localeCompare(b.title, 'zh-CN')
-      return (a.dueDate ?? '9999-12-31').localeCompare(b.dueDate ?? '9999-12-31')
+      return compareOpenTasks(a, b)
     })
   }, [tasks, tab, statusFilter, priority, tag, query, from, to, sort])
 

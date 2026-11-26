@@ -15,6 +15,7 @@ import {
 import { buildAgenda, dayAttendance } from '../utils/attendance'
 import { excerpt } from '../utils/markdown'
 import { countChars } from '../utils/summary'
+import { compareOpenTasks } from '../utils/taskOrder'
 
 export function Dashboard() {
   const { tasks, notes, attendance, summaries, settings, setAttendance, notify } = useApp()
@@ -22,17 +23,16 @@ export function Dashboard() {
   const today = todayISO()
   const todaySummary = summaries.find((item) => item.date === today)
 
-  const openTasks = tasks.filter((task) => task.status === 'todo')
+  // 全部未完成任务：有截止日期的在前（按剩余天数），再按优先级
+  const openTasks = useMemo(
+    () => tasks.filter((task) => task.status === 'todo').sort(compareOpenTasks),
+    [tasks],
+  )
   const doneTasks = tasks.filter((task) => task.status === 'done')
+  const scheduledTasks = openTasks.filter((task) => task.dueDate)
+  const undatedTasks = openTasks.filter((task) => !task.dueDate)
   const overdue = openTasks.filter((task) => task.dueDate && task.dueDate < today)
-  const todayList = openTasks
-    .filter((task) => task.startDate === today || (task.dueDate && task.dueDate <= today))
-    .sort((a, b) => {
-      const aDue = a.dueDate ?? '9999-12-31'
-      const bDue = b.dueDate ?? '9999-12-31'
-      if (aDue !== bDue) return aDue.localeCompare(bDue)
-      return PRIORITY_META[a.priority].weight - PRIORITY_META[b.priority].weight
-    })
+  const todayDue = openTasks.filter((task) => task.dueDate === today).length
   const doneToday = doneTasks.filter((task) => task.completedAt && toISO(new Date(task.completedAt)) === today).length
   const monthPrefix = today.slice(0, 7)
   const notesThisMonth = notes.filter((note) => note.createdAt.slice(0, 7) === monthPrefix).length
@@ -68,9 +68,9 @@ export function Dashboard() {
             {greeting()}，主人<span className="hero-dot">.</span>
           </h2>
           <p>
-            {todayList.length
-              ? `今天有 ${todayList.length} 项待办${overdue.length ? `，其中 ${overdue.length} 项已逾期` : ''}。先挑最要紧的一件开始吧。`
-              : '今天没有到期的任务，适合整理思绪、做点长期有益的事。'}
+            {openTasks.length
+              ? `还有 ${openTasks.length} 项待办${overdue.length ? `，其中 ${overdue.length} 项已逾期` : ''}。先挑最要紧的一件开始吧。`
+              : '待办清空了，适合整理思绪、做点长期有益的事。'}
           </p>
           <div className="hero-actions">
             <button type="button" className="btn btn-on-hero" onClick={() => openTaskEditor()}>
@@ -94,7 +94,7 @@ export function Dashboard() {
           <div className="stat-body">
             <span className="stat-label">待办任务</span>
             <strong className="stat-value">{openTasks.length}</strong>
-            <span className="stat-foot">今日安排 {todayList.length} 项</span>
+            <span className="stat-foot">今日到期 {todayDue} 项</span>
           </div>
         </article>
         <article className="stat-card">
@@ -163,22 +163,38 @@ export function Dashboard() {
           <section className="card">
             <header className="section-head">
               <div>
-                <h3>今日待办</h3>
-                <p>今天到期、已逾期或今天开始的任务</p>
+                <h3>待办清单</h3>
+                <p>
+                  {openTasks.length
+                    ? `共 ${openTasks.length} 项 · 有截止日期的按剩余天数排在前面，其余按优先级`
+                    : '所有未完成的任务都会列在这里'}
+                </p>
               </div>
               <button type="button" className="link-btn" onClick={() => navigate('/tasks/todo')}>
                 全部任务 <Icon name="arrowRight" size={15} />
               </button>
             </header>
             <div className="task-list">
-              {todayList.length ? (
-                todayList.slice(0, 6).map((task) => (
-                  <TaskItem key={task.id} task={task} compact onEdit={() => openTaskEditor({ id: task.id })} />
-                ))
+              {openTasks.length ? (
+                <>
+                  {scheduledTasks.map((task) => (
+                    <TaskItem key={task.id} task={task} compact onEdit={() => openTaskEditor({ id: task.id })} />
+                  ))}
+                  {undatedTasks.length ? (
+                    <>
+                      <div className="task-group-label">
+                        <span>无截止日期</span>
+                      </div>
+                      {undatedTasks.map((task) => (
+                        <TaskItem key={task.id} task={task} compact onEdit={() => openTaskEditor({ id: task.id })} />
+                      ))}
+                    </>
+                  ) : null}
+                </>
               ) : (
                 <div className="empty-state compact">
                   <div className="empty-icon"><Icon name="inbox" size={22} /></div>
-                  <p>今天还没有待办，享受这份清静。</p>
+                  <p>还没有待办，安排一件小事开个头吧。</p>
                   <button type="button" className="btn btn-soft btn-sm" onClick={() => openTaskEditor()}>
                     <Icon name="plus" size={14} /> 安排一件事
                   </button>

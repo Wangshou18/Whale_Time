@@ -1326,6 +1326,24 @@ select.input {
   flex-direction: column;
 }
 
+/* 仪表盘待办清单：有截止日期 / 无截止日期 两组之间的隔断 */
+.task-group-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 2px 8px;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+}
+
+.task-group-label::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
 .task-item {
   display: flex;
   align-items: flex-start;
